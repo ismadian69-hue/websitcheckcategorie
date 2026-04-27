@@ -1,6 +1,6 @@
-const https = require("https");
+const axios = require("axios");
 
-module.exports = (req, res) => {
+module.exports = async (req, res) => {
 const domain = req.query.domain;
 const key = process.env.VT_API_KEY;
 
@@ -12,63 +12,33 @@ message: "No domain"
 });
 }
 
-const options = {
-hostname: "[www.virustotal.com](http://www.virustotal.com)",
-path: "/api/v3/domains/" + domain,
-method: "GET",
+try {
+const response = await axios.get(
+"https://www.virustotal.com/api/v3/domains/" + domain,
+{
 headers: {
 "x-apikey": key
 }
-};
-
-const request = https.request(options, (response) => {
-let data = "";
+}
+);
 
 ```
-response.on("data", (chunk) => {
-  data += chunk;
-});
+const data = response.data;
 
-response.on("end", () => {
-  try {
-    const json = JSON.parse(data);
+const cats = data.data.attributes.categories || {};
+const values = Object.values(cats);
 
-    if (!json.data) {
-      return res.status(200).json({
-        status: "Error",
-        category: "-",
-        message: "No data"
-      });
-    }
-
-    const cats = json.data.attributes.categories || {};
-    const values = Object.values(cats);
-    const category = values[0] || "Unknown";
-
-    return res.status(200).json({
-      status: "Success",
-      category: category
-    });
-
-  } catch (e) {
-    return res.status(200).json({
-      status: "Error",
-      category: "-",
-      message: "Parse error"
-    });
-  }
+return res.status(200).json({
+  status: "Success",
+  category: values[0] || "Unknown"
 });
 ```
 
-});
-
-request.on("error", () => {
+} catch (e) {
 return res.status(200).json({
 status: "Error",
 category: "-",
-message: "Request failed"
+message: "API request failed"
 });
-});
-
-request.end();
+}
 };
