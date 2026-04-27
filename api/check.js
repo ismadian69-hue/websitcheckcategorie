@@ -1,6 +1,6 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
 const domain = req.query.domain;
-const apiKey = process.env.VT_API_KEY;
+const key = process.env.VT_API_KEY;
 
 if (!domain) {
 return res.status(200).json({
@@ -10,49 +10,57 @@ message: "No domain"
 });
 }
 
-if (!apiKey) {
+if (!key) {
 return res.status(200).json({
 status: "Error",
 category: "-",
-message: "API key missing"
+message: "Missing API key"
 });
 }
 
 try {
-const response = await fetch(
+const r = await fetch(
 "https://www.virustotal.com/api/v3/domains/" + domain,
 {
 headers: {
-"x-apikey": apiKey
+"x-apikey": key
 }
 }
 );
 
 ```
-const data = await response.json();
+const j = await r.json();
 
-if (!response.ok) {
+if (!r.ok) {
   return res.status(200).json({
     status: "Error",
     category: "-",
-    message: data.error?.message || "API error"
+    message: "API failed"
   });
 }
 
-const categories = data.data?.attributes?.categories || {};
-const category = Object.values(categories)[0] || "Unknown";
+let cat = "Unknown";
+
+if (
+  j.data &&
+  j.data.attributes &&
+  j.data.attributes.categories
+) {
+  const vals = Object.values(j.data.attributes.categories);
+  if (vals.length) cat = vals[0];
+}
 
 return res.status(200).json({
   status: "Success",
-  category: category
+  category: cat
 });
 ```
 
-} catch (error) {
+} catch (e) {
 return res.status(200).json({
 status: "Error",
 category: "-",
-message: error.message
+message: String(e.message)
 });
 }
-}
+};
