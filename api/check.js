@@ -2,7 +2,11 @@ export default async function handler(req, res) {
   const { domain } = req.query;
 
   if (!domain) {
-    return res.status(400).json({ error: "No domain" });
+    return res.status(400).json({
+      status: "Error",
+      category: "-",
+      message: "No domain"
+    });
   }
 
   try {
@@ -17,13 +21,28 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    const category = Object.values(
-      data.data?.attributes?.categories || {}
-    )[0] || "Unknown";
+    if (!response.ok) {
+      return res.status(200).json({
+        status: "Error",
+        category: "-",
+        message: data.error?.message || "API Error"
+      });
+    }
 
-    res.status(200).json({ domain, category });
+    const category =
+      Object.values(data.data?.attributes?.categories || {})[0] ||
+      "Unknown";
 
-  } catch {
-    res.status(500).json({ error: "API error" });
+    return res.status(200).json({
+      status: "Success",
+      category: category
+    });
+
+  } catch (err) {
+    return res.status(200).json({
+      status: "Error",
+      category: "-",
+      message: "Server Error"
+    });
   }
 }
